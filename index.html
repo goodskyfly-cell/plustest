@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>加法練習單 - 精確進位版</title>
+    <style>
+        @page { size: A4; margin: 0; }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; padding: 0 !important; margin: 0 !important; visibility: hidden; }
+            .worksheet { 
+                visibility: visible !important;
+                position: absolute; left: 0; top: 0;
+                width: 210mm !important; height: 297mm !important;
+                box-shadow: none !important; border: none !important;
+            }
+        }
+
+        body {
+            font-family: "Noto Sans TC", sans-serif;
+            background-color: #f0f2f5;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 10px; margin: 0;
+        }
+
+        .control-panel {
+            background: #fff; padding: 10px 20px; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 5px;
+            display: flex; gap: 15px; align-items: center; z-index: 999;
+        }
+
+        .worksheet {
+            background: white; width: 210mm; height: 297mm;
+            padding: 12mm 22mm; box-sizing: border-box;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        .header {
+            display: flex; justify-content: space-between; align-items: flex-end;
+            border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 12px;
+            flex-shrink: 0;
+        }
+
+        #mainGrid {
+            flex-grow: 1;
+            display: grid;
+            gap: 25px 20px; /* 增加題間距 */
+            justify-items: center;
+            align-content: space-around;
+        }
+
+        .problem-item {
+            display: flex; flex-direction: column;
+            font-family: 'Courier New', monospace; font-weight: bold;
+            width: 100%; align-items: center;
+        }
+
+        .problem-id { font-family: sans-serif; align-self: flex-start; margin-bottom: 3px; color: #444; }
+
+        .math-container {
+            display: inline-block;
+            text-align: right;
+            padding-right: 25px;
+        }
+
+        .math-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            line-height: 0.95;
+        }
+
+        .operator { 
+            margin-right: 0.12em; /* 加號極致靠近數字 */
+            font-weight: normal;
+        }
+
+        .line { 
+            border-bottom: 0.06em solid #000; 
+            margin: 0.12em 0; 
+            width: 130%; 
+            margin-left: -30%;
+        }
+
+        .answer-box {
+            border: 1px dashed #ccc;
+            margin-top: 4px;
+            width: 100%;
+        }
+
+        button { cursor: pointer; padding: 6px 15px; border-radius: 4px; border: none; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel no-print">
+        <label>數量：<input type="number" id="numProblems" value="12" min="1" max="18" style="width:45px;"></label>
+        <label><input type="checkbox" id="allowCarry" checked> 個位進位</label>
+        <select id="calcType">
+            <option value="2plus2" selected>二位數 + 二位數</option>
+            <option value="2plus1">二位數 + 一位數</option>
+        </select>
+        <button onclick="generate()" style="background:#007bff;">刷新題目</button>
+        <button onclick="window.print()" style="background:#28a745;">列印單頁 A4</button>
+    </div>
+
+    <div class="worksheet">
+        <div class="header">
+            <h1 style="margin:0; font-size:24px;">加法練習單 (個位進位)</h1>
+            <div style="display:flex; gap:15px; font-size:16px;">
+                <div>____ 月 ____ 日</div>
+                <div style="border-bottom:1px solid #000; min-width:120px;">姓名：</div>
+            </div>
+        </div>
+        <div id="mainGrid"></div>
+    </div>
+
+    <script>
+        function generate() {
+            const n = parseInt(document.getElementById('numProblems').value);
+            const allowCarry = document.getElementById('allowCarry').checked;
+            const type = document.getElementById('calcType').value;
+            const grid = document.getElementById('mainGrid');
+            grid.innerHTML = '';
+
+            let cols = n <= 4 ? 1 : (n <= 10 ? 2 : 3);
+            let rows = Math.ceil(n / cols);
+            
+            // 字體大小動態調整，確保增加間距後仍不溢出
+            let fontSize = Math.min(65, (360 / rows)); 
+            if (cols === 1) fontSize = 80;
+            
+            grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+
+            for (let i = 1; i <= n; i++) {
+                let a, b;
+                let valid = false;
+                while (!valid) {
+                    if (type === '2plus1') { 
+                        a = Math.floor(Math.random()*80)+10; 
+                        b = Math.floor(Math.random()*9)+1; 
+                    } else { 
+                        a = Math.floor(Math.random()*40)+10; 
+                        b = Math.floor(Math.random()*40)+10; 
+                    }
+                    
+                    const onesSum = (a % 10) + (b % 10);
+                    const tensSum = Math.floor(a/10) + Math.floor(b/10);
+                    
+                    if (allowCarry) {
+                        // 條件：個位數必須進位，但十位數相加（含進位）不能超過 9
+                        if (onesSum >= 10 && (tensSum + 1) < 10) valid = true;
+                    } else {
+                        // 條件：完全不進位
+                        if (onesSum < 10 && tensSum < 10) valid = true;
+                    }
+                }
+
+                const item = document.createElement('div');
+                item.className = 'problem-item';
+                item.style.fontSize = fontSize + 'px';
+                
+                item.innerHTML = `
+                    <div class="problem-id" style="font-size: ${Math.max(14, fontSize/4)}px;">(${i})</div>
+                    <div class="math-container">
+                        <div class="math-row">${a}</div>
+                        <div class="math-row">
+                            <span class="operator">+</span>${b}
+                        </div>
+                        <div class="line"></div>
+                        <div class="answer-box" style="height: ${fontSize*0.75}px;"></div>
+                    </div>
+                `;
+                grid.appendChild(item);
+            }
+        }
+        generate();
+    </script>
+</body>
+</html>
